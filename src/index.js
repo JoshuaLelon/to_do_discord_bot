@@ -34,24 +34,19 @@ client.on("ready", (c) => {
             client.channels.cache.get(CHANNEL_ID).send(task);
         }
     });
-
-    // When you want to start it, use:
     initial_setup_cron.start();
 
     // if it's 8am through 5pm, (i.e. "0 8-17 * * *")
-    let scheduledMessage = new cron.CronJob("0 8-17 * * *", async () => {
+    let bug_me_every_hour_cron = new cron.CronJob("0 8-17 * * *", async () => {
         // find the latest one that doesn't appear twice, ask about it
         const task = await getCurrentTask();
 
         // DM: Hey, it's time to do task
         client.users.fetch(JOSH_ID, false).then((user) => {
-            console.log("TASK: ", task);
             user.send(`Do this task: ${task}`);
         });
     });
-
-    // When you want to start it, use:
-    scheduledMessage.start();
+    bug_me_every_hour_cron.start();
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -80,40 +75,19 @@ async function getCurrentTask(userID = BOT_ID, channelID = CHANNEL_ID) {
         (message) => message[1].author.id === userID
     );
     const undone_tasks = getTasksWithoutDONE(messagesTodayByUser);
-    console.log("undone_tasks: ");
-    console.log(undone_tasks);
-    console.log("");
     const highest_priority_task = undone_tasks[undone_tasks.length - 1];
-    console.log("highest_priority_task: ");
-    console.log(highest_priority_task);
-    console.log("");
     const content = highest_priority_task[1].content;
-    console.log("content: ");
-    console.log(content);
-    console.log("");
     return content;
 }
 
 function getTasksWithoutDONE(messages) {
-    console.log("messages: ");
-    console.log(messages);
-    console.log("");
     const complete_tasks = messages
         .filter((message) => message[1].content.endsWith(TASK_COMPLETE_ENDING))
         .map((message) => message[1].content);
-    console.log("complete_tasks: ");
-    console.log(complete_tasks);
-    console.log("");
     const complete_task_without_done = complete_tasks.map((task) =>
         task.replace(TASK_COMPLETE_ENDING, "")
     );
-    console.log("complete_task_without_done: ");
-    console.log(complete_task_without_done);
-    console.log("");
     const redundant_tasks = complete_tasks.concat(complete_task_without_done);
-    console.log("redundant_tasks: ");
-    console.log(redundant_tasks);
-    console.log("");
     if (redundant_tasks.length > 0) {
         return messages.filter(
             (message) => redundant_tasks.indexOf(message[1].content) === -1
@@ -121,22 +95,6 @@ function getTasksWithoutDONE(messages) {
     } else {
         return messages;
     }
-}
-
-async function userMessagesInChannelToday(
-    userID = JOSH_ID,
-    channelID = CHANNEL_ID
-) {
-    const channel = client.channels.cache.get(channelID);
-    const messages = await channel.messages.fetch({ limit: 100 });
-    const messagesArray = [...messages];
-    const messagesToday = messagesArray.filter((message) =>
-        isTimeStampToday(message)
-    );
-    const messagesTodayByUser = messagesToday.filter(
-        (message) => message[1].author.id === userID
-    );
-    return messagesTodayByUser.map((message) => message[1].content);
 }
 
 function isTimeStampToday(message) {
